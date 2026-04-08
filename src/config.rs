@@ -102,22 +102,26 @@ impl Config {
     }
 
     pub fn save_to_file(&self) -> crate::Result<()> {
-        if let Some(config_dir) = dirs::config_dir() {
-            let tree_config_dir = config_dir.join("tree_lens");
-            std::fs::create_dir_all(&tree_config_dir)?;
-            let config_path = tree_config_dir.join("config.toml");
-            let contents = toml::to_string_pretty(self)?;
-            std::fs::write(config_path, contents)?;
+        let config_dir = dirs::config_dir()
+            .ok_or("could not determine config directory")?;
+        let tree_config_dir = config_dir.join("tree_lens");
+        std::fs::create_dir_all(&tree_config_dir)?;
+        let config_path = tree_config_dir.join("config.toml");
+        let contents = toml::to_string_pretty(self)?;
+        std::fs::write(config_path, contents)?;
+        Ok(())
+    }
+
+    pub fn validate(&self) -> crate::Result<()> {
+        if self.directories_only && self.files_only {
+            return Err("--directories-only and --files-only cannot be used together".into());
         }
         Ok(())
     }
 
-    pub fn get_extensions(&self) -> Vec<String> {
+    pub fn get_extensions(&self) -> Vec<&str> {
         match &self.filter_extension {
-            Some(ext_str) => ext_str
-                .split(',')
-                .map(|s| s.trim().to_lowercase())
-                .collect(),
+            Some(ext_str) => ext_str.split(',').map(|s| s.trim()).collect(),
             None => Vec::new(),
         }
     }
